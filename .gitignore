@@ -1,0 +1,10 @@
+build/
+**/bin/
+**/obj/
+.vs/
+.local/
+*.user
+*.ts
+*.dat
+setup-result.json
+channel-map.json

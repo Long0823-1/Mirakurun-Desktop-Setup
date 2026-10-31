@@ -1,0 +1,33 @@
+{
+  "sourceCommit": "8fa812a90df79f6d8f19d821ebe72b7f8c01014c",
+  "packages": [
+    {
+      "prefix": "TVTest-0.10.0-260730/TVTest_64bit/",
+      "name": "tvtest",
+      "url": "https://raw.githubusercontent.com/tsukumijima/DTV-Builds/8fa812a90df79f6d8f19d821ebe72b7f8c01014c/TVTest-0.10.0-260730.zip",
+      "sha256": "9cbab47cfd86e1570cbc3a2f09c7337afa7c6bd6d0b77c892757f8358d08a4f5",
+      "maxBytes": 100000000
+    },
+    {
+      "prefix": "EDCB-260921/EDCB_64bit/",
+      "name": "edcb",
+      "url": "https://raw.githubusercontent.com/tsukumijima/DTV-Builds/8fa812a90df79f6d8f19d821ebe72b7f8c01014c/EDCB-260921.zip",
+      "sha256": "1885e3ea550fcb74729383cf5749afa0630c6237ec1eb8651563faf0b57aa920",
+      "maxBytes": 150000000
+    },
+    {
+      "prefix": "x64/",
+      "name": "bondriver",
+      "url": "https://github.com/Chinachu/BonDriver_Mirakurun/releases/download/v2.0/BonDriver_Mirakurun_v2.0.zip",
+      "sha256": "ef1c6fc99b0eaaa4eefeecb1adae1296790f0eab4996c8b3675c80fd1b883eb1",
+      "maxBytes": 10000000
+    },
+    {
+      "prefix": "",
+      "name": "vcruntime",
+      "url": "https://download.visualstudio.microsoft.com/download/pr/990c720a-46ce-4dc7-87b9-c2eb615d34b9/CC0FF0EB1DC3F5188AE6300FAEF32BF5BEEBA4BDD6E8E445A9184072096B713B/VC_redist.x64.exe",
+      "sha256": "cc0ff0eb1dc3f5188ae6300faef32bf5beeba4bdd6e8e445a9184072096b713b",
+      "maxBytes": 50000000
+    }
+  ]
+}
