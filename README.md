@@ -30,7 +30,13 @@ Windows 10 / 11 x64、.NET Framework 4.8、接続可能なMirakurunと受信可�
 
 ## 番組表・予約録画
 
+付属のEPGTimerショートカットとアプリの起動ボタンは、録画サーバーが初回EPGを読み込むのを待ってからEPGTimerを開きます。
+
 初回起動時に番組表が空の場合は、サーバーの読み込みを待って「EPG再読み込み」を押してください。情報が不足する場合は「EPG取得」を実行します。EPG取得中はチューナーを使います。
+
+![構築後のEPGTimer番組表](docs/epgtimer.jpg)
+
+別のEDCB環境のEpgTimerSrvとの同時起動は対応していません。構築した環境のショートカットから起動してください。
 
 録画にはWindowsが動作していること、EpgTimerSrvが常駐していること、TV・Mirakurunへ接続できることが必要です。ログイン時起動はWindowsサービスではありません。WindowsやTVのスリープからの復帰、電源断からの録画、長時間・複数同時録画は本アプリの動作確認範囲外です。暗号化された放送の復号機能は追加しません。
 
@@ -41,7 +47,7 @@ Windows 10 / 11 x64、.NET Framework 4.8、接続可能なMirakurunと受信可�
 2026-10-31、Windows x64とTCL Android TV上のMirakurunで、11多重・29映像サービス・2チューナーを確認しました。
 
 - 実際のTVTestで地上波の映像表示を確認。
-- EDCBのEPG解析DLLで初回番組データを解析し、2,112件の番組イベントを確認。
+- EDCBのEPG解析DLLで初回番組データを解析し、最終再構築では2,130件の番組イベントを確認。
 - EPGTimerの番組表画面に番組を表示できることを確認。
 - ZIPのパス逸脱拒否、INI文字コード、実TSID反映、ChSet形式など13項目のテストに合格。
 
@@ -59,4 +65,3 @@ dotnet run --project tests/Tests.csproj -c Release
 配布物は `build/release/` に生成されます。配布元・ハッシュは `catalog.json` を参照してください。アップデート時は配布元ソースとライセンスを確認してハッシュも更新します。
 
 本アプリはMITライセンスです。各ダウンロードソフトのライセンスは個別に適用されます。[第三者ソフトについて](THIRD-PARTY-NOTICES.md)。
-

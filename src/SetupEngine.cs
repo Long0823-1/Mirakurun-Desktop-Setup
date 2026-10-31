@@ -237,7 +237,10 @@ namespace MirakurunDesktop {
    var xml=new XDocument(new XElement("Settings",new XElement("TvTestExe",finalTv),new XElement("TvTestCmd","/d BonDriver_Mirakurun.dll"),new XElement("NwTvMode",false),new XElement("FilePlay",false)));
    xml.Save(Path.Combine(edcb,"EpgTimer.exe.xml"));
    MakeLink(Path.Combine(stage,"TVTest.lnk"),finalTv,"/d BonDriver_Mirakurun.dll");
-   MakeLink(Path.Combine(stage,"EPGTimer.lnk"),Path.Combine(finalEdcb,"EpgTimer.exe"),"");
+   string self=Assembly.GetExecutingAssembly().Location;
+   File.Copy(self,Path.Combine(stage,"DesktopLauncher.exe"),true);
+   if(File.Exists(self+".config"))File.Copy(self+".config",Path.Combine(stage,"DesktopLauncher.exe.config"),true);
+   MakeLink(Path.Combine(stage,"EPGTimer.lnk"),Path.Combine(final,"DesktopLauncher.exe"),"--epgtimer --destination "+Quote(final));
   }
   public static void MakeLink(string file,string target,string args) {
    dynamic shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));dynamic link=shell.CreateShortcut(file);

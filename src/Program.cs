@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,8 +11,32 @@ using System.Windows.Forms;
 namespace MirakurunDesktop {
  static class Program {
   [STAThread] static int Main(string[] args) {
+   if(args.Contains("--epgtimer")){LaunchEpg(Arg(args,"--destination")).GetAwaiter().GetResult();return 0;}
    if(args.Contains("--headless"))return Headless(args).GetAwaiter().GetResult();
    Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);Application.Run(new SetupForm());return 0;
+  }
+  public static async Task LaunchEpg(string root) {
+   string dir=Path.Combine(root,"EDCB");
+   if(!Process.GetProcessesByName("EpgTimerSrv").Any())Process.Start(new ProcessStartInfo(Path.Combine(dir,"EpgTimerSrv.exe")){WorkingDirectory=dir});
+   // Wait for the server to parse initial EPG before the client caches an empty table.
+   for(int attempt=0;attempt<30;attempt++) {
+    try {
+     using(var pipe=new NamedPipeClientStream(".","EpgTimerSrvPipe",PipeDirection.InOut,PipeOptions.Asynchronous)) {
+      await Task.Run(()=>pipe.Connect(1000));
+      byte[] command=new byte[8];Array.Copy(BitConverter.GetBytes(1026),command,4);await pipe.WriteAsync(command,0,8);
+      byte[] header=new byte[8];await ReadPipe(pipe,header);
+      int status=BitConverter.ToInt32(header,0),size=BitConverter.ToInt32(header,4);
+      if(size<0||size>64*1024*1024)throw new InvalidDataException();
+      byte[] body=new byte[size];await ReadPipe(pipe,body);
+      if(status==1&&size>8)break;
+     }
+    }catch(IOException){}catch(TimeoutException){}
+    await Task.Delay(1000);
+   }
+   Process.Start(new ProcessStartInfo(Path.Combine(dir,"EpgTimer.exe")){WorkingDirectory=dir});
+  }
+  static async Task ReadPipe(Stream pipe,byte[] buffer) {
+   int offset=0;while(offset<buffer.Length){var task=pipe.ReadAsync(buffer,offset,buffer.Length-offset);if(await Task.WhenAny(task,Task.Delay(3000))!=task)throw new TimeoutException();int n=await task;if(n==0)throw new IOException();offset+=n;}
   }
   static string Arg(string[] args,string name,string fallback=null){int index=Array.IndexOf(args,name);return index>=0&&index+1<args.Length?args[index+1]:fallback;}
   static async Task<int> Headless(string[] args) {
@@ -49,7 +74,7 @@ namespace MirakurunDesktop {
    var finished=new FlowLayoutPanel {AutoSize=true,Dock=DockStyle.Fill};view.Text="TVTestを開く";timer.Text="EPGTimerを開く";folder.Text="構築先を開く";foreach(var b in new[]{view,timer,folder}){b.AutoSize=true;b.Enabled=false;finished.Controls.Add(b);}var support=new LinkLabel {Text="Ko-fiで開発を支援",AutoSize=true,Margin=new Padding(20,8,0,0)};support.LinkClicked+=(s,e)=>Process.Start("https://ko-fi.com/long0823");finished.Controls.Add(support);layout.Controls.Add(finished,0,12);layout.SetColumnSpan(finished,3);
    check.Click+=async(s,e)=>{if(busy)return;SetBusy(true);try{var info=await new SetupEngine(Log).InspectAsync(server.Text,CancellationToken.None);tuners.Value=Math.Min(16,info.Item2);Log("接続できました："+info.Item1.Count+"多重 / "+info.Item2+"チューナー");}catch(Exception ex){Log("接続失敗："+ex.Message);}finally{SetBusy(false);}};
    install.Click+=async(s,e)=>await Install();cancel.Click+=(s,e)=>cancellation?.Cancel();
-   view.Click+=(s,e)=>Launch(Path.Combine(completed,"TVTest","TVTest.exe"),"/d BonDriver_Mirakurun.dll");timer.Click+=(s,e)=>Launch(Path.Combine(completed,"EDCB","EpgTimer.exe"),"");folder.Click+=(s,e)=>Process.Start(completed);
+   view.Click+=(s,e)=>Launch(Path.Combine(completed,"TVTest","TVTest.exe"),"/d BonDriver_Mirakurun.dll");timer.Click+=async(s,e)=>{timer.Enabled=false;try{await Program.LaunchEpg(completed);}catch(Exception ex){Log(ex.Message);}finally{timer.Enabled=true;}};folder.Click+=(s,e)=>Process.Start(completed);
    FormClosing+=(s,e)=>{if(busy){e.Cancel=true;Log("処理中です。先に「中止」を選んでください。");}};
    Log("接続先と空の構築先を指定し、「まとめて構築」を押してください。");
   }

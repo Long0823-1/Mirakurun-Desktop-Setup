@@ -29,4 +29,3 @@ public:
     virtual const DWORD GetCurSpace(void) = 0;
     virtual const DWORD GetCurChannel(void) = 0;
 };
-
