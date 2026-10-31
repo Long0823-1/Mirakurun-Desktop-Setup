@@ -201,6 +201,8 @@ namespace MirakurunDesktop {
     token.ThrowIfCancellationRequested();
     if(Directory.Exists(final))Directory.Delete(final,false);Directory.Move(stage,final);
     Directory.CreateDirectory(recording);
+    MakeLink(Path.Combine(final,"TVTest.lnk"),Path.Combine(final,"TVTest","TVTest.exe"),"/d BonDriver_Mirakurun.dll");
+    MakeLink(Path.Combine(final,"EPGTimer.lnk"),Path.Combine(final,"DesktopLauncher.exe"),"--epgtimer --destination "+Quote(final));
     if(options.Shortcuts)try { result.shortcuts=CreateShortcuts(final,options.Startup); }catch(Exception e){result.warnings.Add("ショートカット作成："+e.Message);}
     WriteJson(Path.Combine(final,"setup-result.json"),result);
     log("構築完了："+result.channels+"多重 / "+result.services+"サービス / "+tunerCount+"チューナー");
@@ -236,11 +238,9 @@ namespace MirakurunDesktop {
    Write(Path.Combine(tv,"TVTest.ini"),"[Settings]\nDefaultDriverType=2\nDefaultDriver=BonDriver_Mirakurun.dll\nDriver=BonDriver_Mirakurun.dll\nMpeg2Decoder=TVTest DTV Video Decoder\nRenderer=EVR\n[PluginList]\nPluginCount=1\nPlugin0_Name=EpgTimerPlugIn.tvtp\nPlugin0_Enable=1\n");
    var xml=new XDocument(new XElement("Settings",new XElement("TvTestExe",finalTv),new XElement("TvTestCmd","/d BonDriver_Mirakurun.dll"),new XElement("NwTvMode",false),new XElement("FilePlay",false)));
    xml.Save(Path.Combine(edcb,"EpgTimer.exe.xml"));
-   MakeLink(Path.Combine(stage,"TVTest.lnk"),finalTv,"/d BonDriver_Mirakurun.dll");
    string self=Assembly.GetExecutingAssembly().Location;
    File.Copy(self,Path.Combine(stage,"DesktopLauncher.exe"),true);
    if(File.Exists(self+".config"))File.Copy(self+".config",Path.Combine(stage,"DesktopLauncher.exe.config"),true);
-   MakeLink(Path.Combine(stage,"EPGTimer.lnk"),Path.Combine(final,"DesktopLauncher.exe"),"--epgtimer --destination "+Quote(final));
   }
   public static void MakeLink(string file,string target,string args) {
    dynamic shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));dynamic link=shell.CreateShortcut(file);
