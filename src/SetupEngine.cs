@@ -47,7 +47,7 @@ namespace MirakurunDesktop {
   static HttpClient Client(int seconds=20,bool redirect=false) {
    ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
    var c=new HttpClient(new HttpClientHandler { AllowAutoRedirect=redirect }) { Timeout=TimeSpan.FromSeconds(seconds) };
-   c.DefaultRequestHeaders.UserAgent.ParseAdd("Mirakurun-Desktop-Setup/0.1.0");return c;
+   c.DefaultRequestHeaders.UserAgent.ParseAdd("Mirakurun-Desktop-Setup/0.1.1");return c;
   }
   public async Task<Tuple<List<Channel>,int>> InspectAsync(string server,CancellationToken token) {
    var uri=ServerUri(server);
