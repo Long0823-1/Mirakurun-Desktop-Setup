@@ -56,7 +56,7 @@ namespace MirakurunDesktop {
   readonly Button install=new Button(),cancel=new Button(),check=new Button(),view=new Button(),timer=new Button(),folder=new Button();
   readonly ProgressBar progress=new ProgressBar();CancellationTokenSource cancellation;bool busy;string completed;
   public SetupForm() {
-   AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;Text="Mirakurun Desktop Setup 0.1.1";ClientSize=new Size(960,820);MinimumSize=new Size(900,780);Font=new Font("Yu Gothic UI",10);BackColor=Color.FromArgb(246,248,249);
+   AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;Text="Mirakurun Desktop Setup 0.1.2";ClientSize=new Size(960,820);MinimumSize=new Size(900,780);Font=new Font("Yu Gothic UI",10);BackColor=Color.FromArgb(246,248,249);
    var layout=new TableLayoutPanel {Dock=DockStyle.Fill,Padding=new Padding(26),ColumnCount=3,RowCount=13};layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,165));layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,115));Controls.Add(layout);
    var title=new Label {Text="Mirakurunから、視聴・録画環境をまとめて構築",Font=new Font(Font.FontFamily,19,FontStyle.Bold),AutoSize=true,Margin=new Padding(0,0,0,10)};layout.Controls.Add(title,0,0);layout.SetColumnSpan(title,3);
    var description=new Label {Text="BonDriver_Mirakurun / TVTest / EDCB・EPGTimer（すべてx64）\n稼働済みのMirakurunに接続して、局設定・初回EPG・TVTest連携まで自動設定します。",AutoSize=true,Margin=new Padding(0,0,0,18)};layout.Controls.Add(description,0,1);layout.SetColumnSpan(description,3);

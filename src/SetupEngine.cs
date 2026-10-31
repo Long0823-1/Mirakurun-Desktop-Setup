@@ -47,7 +47,7 @@ namespace MirakurunDesktop {
   static HttpClient Client(int seconds=20,bool redirect=false) {
    ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
    var c=new HttpClient(new HttpClientHandler { AllowAutoRedirect=redirect }) { Timeout=TimeSpan.FromSeconds(seconds) };
-   c.DefaultRequestHeaders.UserAgent.ParseAdd("Mirakurun-Desktop-Setup/0.1.1");return c;
+   c.DefaultRequestHeaders.UserAgent.ParseAdd("Mirakurun-Desktop-Setup/0.1.2");return c;
   }
   public async Task<Tuple<List<Channel>,int>> InspectAsync(string server,CancellationToken token) {
    var uri=ServerUri(server);
@@ -250,7 +250,13 @@ namespace MirakurunDesktop {
   static List<string> CreateShortcuts(string final,bool startup) {
    string id=BitConverter.ToString(SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(final.ToLowerInvariant()))).Replace("-","").Substring(0,8);
    string menu=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs),"Mirakurun Desktop",id);Directory.CreateDirectory(menu);var paths=new List<string>();
-   foreach(string app in new[]{"TVTest","EPGTimer"}){string path=Path.Combine(menu,app+".lnk");File.Copy(Path.Combine(final,app+".lnk"),path,true);paths.Add(path);}
+   string desktop=Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+   Directory.CreateDirectory(desktop);
+   foreach(string app in new[]{"TVTest","EPGTimer"}) {
+    string path=Path.Combine(menu,app+".lnk");File.Copy(Path.Combine(final,app+".lnk"),path,true);paths.Add(path);
+    string desktopLink=Path.Combine(desktop,app+" (Mirakurun "+id+").lnk");
+    File.Copy(Path.Combine(final,app+".lnk"),desktopLink,true);paths.Add(desktopLink);
+   }
    if(startup){string path=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup),"Mirakurun EPGTimerSrv "+id+".lnk");MakeLink(path,Path.Combine(final,"EDCB","EpgTimerSrv.exe"),"");paths.Add(path);}
    return paths;
   }
