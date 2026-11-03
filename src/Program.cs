@@ -11,6 +11,8 @@ using System.Windows.Forms;
 namespace MirakurunDesktop {
  static class Program {
   [STAThread] static int Main(string[] args) {
+   if(args.Contains("--direct-service")){DirectDhcpService.StartServiceProcess();return 0;}
+   if(args.Contains("--discover")){foreach(string endpoint in MirakurunDiscovery.FindAsync(CancellationToken.None).GetAwaiter().GetResult())if(MirakurunDiscovery.CheckAsync(endpoint,CancellationToken.None).GetAwaiter().GetResult())Console.WriteLine(endpoint);return 0;}
    if(args.Contains("--epgtimer")){LaunchEpg(Arg(args,"--destination")).GetAwaiter().GetResult();return 0;}
    if(args.Contains("--headless"))return Headless(args).GetAwaiter().GetResult();
    Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);Application.Run(new SetupForm());return 0;
@@ -53,15 +55,17 @@ namespace MirakurunDesktop {
   readonly TextBox server=new TextBox(),destination=new TextBox(),recording=new TextBox(),log=new TextBox();
   readonly NumericUpDown tuners=new NumericUpDown(),seconds=new NumericUpDown();
   readonly CheckBox startup=new CheckBox(),runtime=new CheckBox();
+  readonly Button discover=new Button();
+  readonly Button direct=new Button();
   readonly Button install=new Button(),cancel=new Button(),check=new Button(),view=new Button(),timer=new Button(),folder=new Button();
   readonly ProgressBar progress=new ProgressBar();CancellationTokenSource cancellation;bool busy;string completed;
   public SetupForm() {
-   AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;Text="Mirakurun Desktop Setup 0.1.2";ClientSize=new Size(960,820);MinimumSize=new Size(900,780);Font=new Font("Yu Gothic UI",10);BackColor=Color.FromArgb(246,248,249);
+   AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;Text="Mirakurun Desktop Setup 0.2.0";ClientSize=new Size(960,820);MinimumSize=new Size(900,780);Font=new Font("Yu Gothic UI",10);BackColor=Color.FromArgb(246,248,249);
    var layout=new TableLayoutPanel {Dock=DockStyle.Fill,Padding=new Padding(26),ColumnCount=3,RowCount=13};layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,165));layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,115));Controls.Add(layout);
    var title=new Label {Text="Mirakurunから、視聴・録画環境をまとめて構築",Font=new Font(Font.FontFamily,19,FontStyle.Bold),AutoSize=true,Margin=new Padding(0,0,0,10)};layout.Controls.Add(title,0,0);layout.SetColumnSpan(title,3);
    var description=new Label {Text="BonDriver_Mirakurun / TVTest / EDCB・EPGTimer（すべてx64）\n稼働済みのMirakurunに接続して、局設定・初回EPG・TVTest連携まで自動設定します。",AutoSize=true,Margin=new Padding(0,0,0,18)};layout.Controls.Add(description,0,1);layout.SetColumnSpan(description,3);
-   server.Text="http://169.254.95.200:40772/";destination.Text=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MirakurunDesktop");
-   Row(layout,2,"Mirakurun接続先",server);check.Text="接続確認";check.Dock=DockStyle.Fill;layout.Controls.Add(check,2,2);
+   server.Text=LastServer()??"http://tcltv-mirakurun.local:40772/";destination.Text=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MirakurunDesktop");
+   Row(layout,2,"Mirakurun接続先",server);check.Text="接続確認";check.AutoSize=true;discover.Text="自動接続";discover.AutoSize=true;var connectActions=new FlowLayoutPanel {AutoSize=true,FlowDirection=FlowDirection.TopDown,Dock=DockStyle.Fill,WrapContents=false};connectActions.Controls.Add(discover);connectActions.Controls.Add(check);layout.Controls.Add(connectActions,2,2);
    Row(layout,3,"構築先（空）",destination);var browse=new Button {Text="参照…",Dock=DockStyle.Fill};layout.Controls.Add(browse,2,3);browse.Click+=(s,e)=>{using(var dialog=new FolderBrowserDialog {Description="空の専用フォルダーを選択してください",SelectedPath=destination.Text})if(dialog.ShowDialog(this)==DialogResult.OK)destination.Text=dialog.SelectedPath;};
    recording.PlaceholderTextCompat("空欄なら構築先のRecordings");Row(layout,4,"録画保存先",recording);var recBrowse=new Button {Text="参照…",Dock=DockStyle.Fill};layout.Controls.Add(recBrowse,2,4);recBrowse.Click+=(s,e)=>{using(var d=new FolderBrowserDialog {Description="録画の保存先"})if(d.ShowDialog(this)==DialogResult.OK)recording.Text=d.SelectedPath;};
    var settings=new FlowLayoutPanel {AutoSize=true,Dock=DockStyle.Fill};settings.Controls.Add(new Label {Text="録画チューナー数",AutoSize=true,Padding=new Padding(0,5,0,0)});tuners.Minimum=1;tuners.Maximum=16;tuners.Value=2;tuners.Width=55;settings.Controls.Add(tuners);settings.Controls.Add(new Label {Text="初回EPG：1多重あたり（秒）",AutoSize=true,Padding=new Padding(18,5,0,0)});seconds.Minimum=3;seconds.Maximum=120;seconds.Value=15;seconds.Width=55;settings.Controls.Add(seconds);layout.Controls.Add(settings,0,5);layout.SetColumnSpan(settings,3);
@@ -72,14 +76,41 @@ namespace MirakurunDesktop {
    progress.Dock=DockStyle.Fill;progress.Height=7;progress.Style=ProgressBarStyle.Continuous;layout.Controls.Add(progress,0,10);layout.SetColumnSpan(progress,3);
    log.Multiline=true;log.ScrollBars=ScrollBars.Vertical;log.ReadOnly=true;log.BackColor=Color.White;log.Dock=DockStyle.Fill;layout.Controls.Add(log,0,11);layout.SetColumnSpan(log,3);layout.RowStyles.Add(new RowStyle());for(int i=1;i<11;i++)layout.RowStyles.Add(new RowStyle());layout.RowStyles.Add(new RowStyle(SizeType.Percent,100));layout.RowStyles.Add(new RowStyle());
    var finished=new FlowLayoutPanel {AutoSize=true,Dock=DockStyle.Fill};view.Text="TVTestを開く";timer.Text="EPGTimerを開く";folder.Text="構築先を開く";foreach(var b in new[]{view,timer,folder}){b.AutoSize=true;b.Enabled=false;finished.Controls.Add(b);}var support=new LinkLabel {Text="Ko-fiで開発を支援",AutoSize=true,Margin=new Padding(20,8,0,0)};support.LinkClicked+=(s,e)=>Process.Start("https://ko-fi.com/long0823");finished.Controls.Add(support);layout.Controls.Add(finished,0,12);layout.SetColumnSpan(finished,3);
-   check.Click+=async(s,e)=>{if(busy)return;SetBusy(true);try{var info=await new SetupEngine(Log).InspectAsync(server.Text,CancellationToken.None);tuners.Value=Math.Min(16,info.Item2);Log("接続できました："+info.Item1.Count+"多重 / "+info.Item2+"チューナー");}catch(Exception ex){Log("接続失敗："+ex.Message);}finally{SetBusy(false);}};
+   check.Click+=async(s,e)=>{if(busy)return;SetBusy(true);try{var info=await new SetupEngine(Log).InspectAsync(server.Text,CancellationToken.None);tuners.Value=Math.Min(16,info.Item2);SaveServer(server.Text);Log("接続できました："+info.Item1.Count+"多重 / "+info.Item2+"チューナー");}catch(Exception ex){Log("接続失敗："+ex.Message);}finally{SetBusy(false);}};
+   direct.Text="Windows直結設定";direct.AutoSize=true;finished.Controls.Add(direct);direct.Click+=(s,e)=>{if(!busy)DirectConnection.Show(this,Log,value=>{server.Text=value;SaveServer(value);},server.Text);};
+   discover.Click+=async(s,e)=>await AutoConnect();Shown+=async(s,e)=>await AutoConnect();
    install.Click+=async(s,e)=>await Install();cancel.Click+=(s,e)=>cancellation?.Cancel();
    view.Click+=(s,e)=>Launch(Path.Combine(completed,"TVTest","TVTest.exe"),"/d BonDriver_Mirakurun.dll");timer.Click+=async(s,e)=>{timer.Enabled=false;try{await Program.LaunchEpg(completed);}catch(Exception ex){Log(ex.Message);}finally{timer.Enabled=true;}};folder.Click+=(s,e)=>Process.Start(completed);
    FormClosing+=(s,e)=>{if(busy){e.Cancel=true;Log("処理中です。先に「中止」を選んでください。");}};
    Log("接続先と空の構築先を指定し、「まとめて構築」を押してください。");
   }
   static void Row(TableLayoutPanel panel,int row,string label,TextBox text){panel.Controls.Add(new Label {Text=label,AutoSize=true,Anchor=AnchorStyles.Left,Margin=new Padding(0,7,5,7)},0,row);text.Dock=DockStyle.Fill;text.Margin=new Padding(0,4,8,4);panel.Controls.Add(text,1,row);}
-  void SetBusy(bool value){busy=value;foreach(Control c in new Control[]{server,destination,recording,tuners,seconds,startup,runtime,install,check})c.Enabled=!value;cancel.Enabled=value;progress.Style=value?ProgressBarStyle.Marquee:ProgressBarStyle.Continuous;}
+  void SetBusy(bool value){busy=value;foreach(Control c in new Control[]{server,destination,recording,tuners,seconds,startup,runtime,install,check,discover,direct})c.Enabled=!value;cancel.Enabled=value;progress.Style=value?ProgressBarStyle.Marquee:ProgressBarStyle.Continuous;}
+  static string ConnectionFile=>Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MirakurunDesktopSetup","last-server.txt");
+  static string LastServer(){try{if(new FileInfo(ConnectionFile).Length>4096)return null;string text=File.ReadAllText(ConnectionFile).Trim();Uri uri;if(Uri.TryCreate(text,UriKind.Absolute,out uri)&&uri.Scheme=="http"&&string.IsNullOrEmpty(uri.UserInfo)&&(MirakurunDiscovery.IsPrivate(uri.Host)||uri.Host.EndsWith(".local",StringComparison.OrdinalIgnoreCase)))return text;}catch(IOException){}catch(UnauthorizedAccessException){}return null;}
+  static void SaveServer(string value,string deviceId=null){try{var uri=new Uri(value);if(uri.UserInfo.Length>0)return;Directory.CreateDirectory(Path.GetDirectoryName(ConnectionFile));File.WriteAllText(ConnectionFile,uri.AbsoluteUri);File.WriteAllText(ConnectionFile+".device",deviceId??"");}catch(Exception e)when(e is IOException||e is UnauthorizedAccessException||e is UriFormatException){}}
+  async Task AutoConnect(){
+   if(busy)return;SetBusy(true);cancellation=new CancellationTokenSource();var token=cancellation.Token;Log("LAN内のTVを検索しています。有線を優先し、応答しない場合だけWi-Fiへ切り替えます…");
+   try {
+    var found=await MirakurunDiscovery.FindCandidatesAsync(token);string previous=LastServer(),previousDevice="";try{previousDevice=File.ReadAllText(ConnectionFile+".device").Trim();}catch(IOException){}catch(UnauthorizedAccessException){}
+    foreach(var item in found)if((item.Address==previous||item.Hostname==previous)&&item.DeviceId.Length>0)previousDevice=item.DeviceId;
+    var reachable=new System.Collections.Generic.List<MirakurunDiscovery.Candidate>();var endpoints=new System.Collections.Generic.Dictionary<string,string>();
+    foreach(var candidate in found.OrderBy(c=>c.Priority).Take(16)) {
+     token.ThrowIfCancellationRequested();if(!await MirakurunDiscovery.CheckAsync(candidate.Address,token))continue;
+     string endpoint=await MirakurunDiscovery.HostMatchesAsync(candidate,token)&&await MirakurunDiscovery.CheckAsync(candidate.Hostname,token)?candidate.Hostname:candidate.Address;
+     reachable.Add(candidate);endpoints[candidate.Address]=endpoint;
+    }
+    var routes=MirakurunDiscovery.PreferredRoutes(reachable);MirakurunDiscovery.Candidate selected=routes.FirstOrDefault(c=>c.DeviceId.Length>0&&c.DeviceId==previousDevice);string chosen=null;
+    if(selected==null&&routes.Count==1)selected=routes[0];
+    if(selected==null&&routes.Count>1)using(var dialog=new Form {Text="接続するTVを選択（TVごとに有線を優先）",Width=720,Height=165,StartPosition=FormStartPosition.CenterParent}){
+     var picker=new ComboBox {Dock=DockStyle.Top,DropDownStyle=ComboBoxStyle.DropDownList};picker.Items.AddRange(routes.Select(c=>(object)((c.Transport=="wired"?"有線":c.Transport=="wifi"?"Wi-Fi":"接続先")+" : "+endpoints[c.Address])).ToArray());picker.SelectedIndex=0;var select=new Button {Text="このTVへ接続",Dock=DockStyle.Bottom,DialogResult=DialogResult.OK};dialog.Controls.Add(picker);dialog.Controls.Add(select);dialog.AcceptButton=select;if(dialog.ShowDialog(this)==DialogResult.OK)selected=routes[picker.SelectedIndex];
+    }
+    if(selected!=null)chosen=endpoints[selected.Address];
+    else if(routes.Count==0){if(previous!=null&&await MirakurunDiscovery.CheckAsync(previous,token))chosen=previous;else if(await MirakurunDiscovery.CheckAsync("http://169.254.95.200:40772/",token))chosen="http://169.254.95.200:40772/";}
+    if(chosen!=null){server.Text=chosen;SaveServer(chosen,selected?.DeviceId);Log("自動接続先："+chosen+" / "+(selected?.Transport=="wired"?"有線を優先":selected?.Transport=="wifi"?"有線が利用できないためWi-Fi":"API応答を確認"));}
+    else Log("TVを検出できませんでした。TVの配信起動と同じLANへの接続を確認してください。直結の場合は「Windows直結設定」、または両側のIP自動取得設定を確認してください。");
+   }catch(OperationCanceledException){Log("自動接続を中止しました。");}catch(Exception e){Log("自動接続できません："+e.Message);}finally{cancellation.Dispose();cancellation=null;SetBusy(false);}
+  }
   void Log(string text){if(IsDisposed)return;if(InvokeRequired){BeginInvoke(new Action<string>(Log),text);return;}log.AppendText(DateTime.Now.ToString("HH:mm:ss ")+text+Environment.NewLine);}
   async Task Install(){
    var options=new Options {Server=server.Text,Destination=destination.Text,RecordDirectory=recording.Text,TunerCount=(int)tuners.Value,CaptureSeconds=(int)seconds.Value,Startup=startup.Checked,InstallRuntime=runtime.Checked};

@@ -6,13 +6,14 @@ using System.Linq;
 using System.Text;
 using MirakurunDesktop;
 
-static class Tests {
+static partial class Tests {
  static int checks;
  static void Assert(bool value,string name){if(!value)throw new Exception(name);checks++;Console.WriteLine("PASS "+name);}
  static void Reject(Action action,string name){try{action();}catch(ArgumentException){checks++;Console.WriteLine("PASS "+name);return;}catch(InvalidDataException){checks++;Console.WriteLine("PASS "+name);return;}throw new Exception("Expected rejection: "+name);}
- [STAThread] static int Main(){
+ [STAThread] static int Main(string[] args){
   string root=Path.Combine(Path.GetTempPath(),"MirakurunDesktopTests-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
   try{
+   DirectDhcpTests();DiscoveryTests();if(args.Contains("--discovery-live"))DiscoveryLive(args).GetAwaiter().GetResult();
    Reject(()=>SetupEngine.ServerUri("http://user:secret@localhost:40772/"),"credentials rejected");
    Reject(()=>SetupEngine.ServerUri("http://localhost:40772/other?key=value"),"subpath/query rejected");
    Assert(SetupEngine.ServerUri("http://127.0.0.1:40772/").Port==40772,"valid server");
