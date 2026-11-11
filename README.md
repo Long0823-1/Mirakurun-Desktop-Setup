@@ -99,3 +99,10 @@ dotnet run --project tests/Tests.csproj -c Release
 配布物は `build/release/` に生成されます。配布元・ハッシュは `catalog.json` を参照してください。アップデート時は配布元ソースとライセンスを確認してハッシュも更新します。
 
 本アプリはMITライセンスです。各ダウンロードソフトのライセンスは個別に適用されます。[第三者ソフトについて](THIRD-PARTY-NOTICES.md)。
+
+## 関連記事
+
+ブログ「knowledge-storage.info」で関連する解説記事を公開しています。
+
+- [TCLテレビの内蔵チューナーをPCで活用！Mirakurun＋TVTest・EPGTimerの導入をワンクリックに](https://knowledge-storage.info/2026/10/31/tcl-mirakurun-tvtest-epgtimer/)
+- [TCL 32S5400でMirakurunを動かす｜内蔵地デジ・CATV・BS/CS チューナーをTVだけで配信する導入手順](https://knowledge-storage.info/2026/10/28/tcl-32s5400-mirakurun/)
